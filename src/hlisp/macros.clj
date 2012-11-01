@@ -36,9 +36,7 @@
 (defmacro deftpl
   "Create and bind a template function."
   [nm & forms]
-  (let [params  (butlast forms)
-        body    (last forms)]
-    `(defn ~nm [~@params] (interpolating ~body))))
+  `(def ~nm (tpl ~@forms)))
 
 (comment
   
