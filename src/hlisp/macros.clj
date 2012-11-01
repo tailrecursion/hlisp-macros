@@ -43,17 +43,22 @@
 (comment
   
   (deftpl
-    mytemplate2 
+    mytpl 
     foo 
-    {:hey "#{foo}---#{foo}"})
+    {:hey "#{(if (= \"a\" foo) \"is a\" \"not a\")}---#{foo}"})
+  ;=> #'hlisp.macros/mytpl
 
-  (mytemplate2 "a")
+  (mytpl "a")
+  ;=> {:hey "is a---a"}
 
-  ;=> (macroexpand '(def-values [x y z] [1 2 3]))
-  (do
-    (def vec__803 [1 2 3])
-    (def x (clojure.core/nth vec__803 0 nil))
-    (def y (clojure.core/nth vec__803 1 nil))
-    (def z (clojure.core/nth vec__803 2 nil)))
+  (mytpl "b")
+  ;=> {:hey "not a---b"}
+
+  (macroexpand '(def-values [x y z] [1 2 3]))
+  ;=> (do
+  ;     (def vec__803 [1 2 3])
+  ;     (def x (clojure.core/nth vec__803 0 nil))
+  ;     (def y (clojure.core/nth vec__803 1 nil))
+  ;     (def z (clojure.core/nth vec__803 2 nil)))
 
   )
