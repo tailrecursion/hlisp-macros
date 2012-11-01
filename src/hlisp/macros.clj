@@ -15,57 +15,39 @@
 (defn i [template]
   (let [re    #"#\{([^}]+)}"
         text  (split template re) 
-        refs  (mapv (comp read-string second) (re-seq re template))]
-    (cond
-      (= 0 (count refs)) template
-      :else
-      `(str ~@(if (= 0 (count text)) 
-                refs 
-                (remove #(= "" %) (interleave text (conj refs ""))))))))
+        refs  (mapv (comp read-string second) (re-seq re template))
+        ndif  (max 0 (- (count refs) (count text))) 
+        pads  (repeat ndif "")
+        both  (remove #(= "" %) (interleave (concat text pads) (conj refs "")))
+        parts (if (seq text) both refs)]
+    (if (seq refs) `(str ~@parts) template)))
 
 (defmacro interpolating
   [& body]
   `(do ~@(postwalk #(if (string? %) (i %) %) body)))
 
-(defmacro deftemplate
-  "Define a template. Templates are functions."
-  [_ [nm _] & forms]
-  `(defn ~nm [_# ~@(map first (butlast forms))]
-     (interpolating ~(last forms))))
+(defmacro tpl
+  "Create a template function. Does string interpolation."
+  [& forms]
+  (let [params  (butlast forms)
+        body    (last forms)]
+    `(fn [~@params] (interpolating ~body))))
+
+(defmacro deftpl
+  "Create and bind a template function."
+  [nm & forms]
+  (let [params  (butlast forms)
+        body    (last forms)]
+    `(defn ~nm [~@params] (interpolating ~body))))
 
 (comment
   
-  (macroexpand
-    '(interpolating
-       (defn doit [foo bar baz]
-         {:one "#{foo}asdf#{foo}"}
-         "#{baz}"
-         "FOO"
-         ))) 
-  
-  (interpolating
-    (defn doit [foo bar baz]
-      "#{baz} asdf #{foo} #{bar} asdf")) 
-  
-  (doit "one" "two" "three") 
+  (deftpl
+    mytemplate2 
+    foo 
+    {:hey "#{foo}---#{foo}"})
 
-  (in-ns 'user)
-
-  (deftemplate {}
-    (mytemplate {}) 
-    (foo {}) 
-    (bar {}) 
-    (baz {}) 
-    {:one "--#{foo}--" :two bar}) 
-
-  (deftemplate {}
-    (mytemplate2 {}) 
-    (foo {}) 
-    {:hey "!!#{foo}!!"})
-
-  (mytemplate2 {} "a")
-
-  (macroexpand (interpolating (let [x "foo"] "--#{x}--")))
+  (mytemplate2 "a")
 
   ;=> (macroexpand '(def-values [x y z] [1 2 3]))
   (do
