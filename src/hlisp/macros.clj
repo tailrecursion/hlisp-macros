@@ -1,6 +1,9 @@
 (ns hlisp.macros
-  (:use [clojure.walk :only [postwalk]])
-  (:use [clojure.string :only [blank? split]]))
+  (:use
+    [clojure.walk   :only [postwalk]]
+    [clojure.string :only [blank? split]]) 
+  (:require
+    [clojure.core.strint :as strint]))
 
 (defmacro def-values
   "Destructuring def, similar to scheme's define-values."
@@ -12,45 +15,57 @@
     (map #(cons 'def %))
     (list* 'do)))
 
-(defn i [template]
-  (let [re    #"#\{([^}]+)}"
-        text  (split template re) 
-        refs  (mapv (comp read-string second) (re-seq re template))
-        ndif  (max 0 (- (count refs) (count text))) 
-        pads  (repeat ndif "")
-        both  (remove #(= "" %) (interleave (concat text pads) (conj refs "")))
-        parts (if (seq text) both refs)]
-    (if (seq refs) `(str ~@parts) template)))
+(defn i
+  [template]
+  (let [parts (remove #(= "" %) (#'strint/interpolate template))]
+    (if (every? string? parts) (apply str parts) `(str ~@parts))))
+
+(defn interpolate
+  [& forms]
+  (postwalk #(if (string? %) (i %) %) forms))
 
 (defmacro interpolating
   [& body]
-  `(do ~@(postwalk #(if (string? %) (i %) %) body)))
+  `(do ~@(apply interpolate body)))
 
 (defmacro tpl
-  "Create a template function. Does string interpolation."
   [& forms]
   (let [params  (butlast forms)
         body    (last forms)]
-    `(fn [~@params] (interpolating ~body))))
+    `(fn [~@params] ~body)))
 
 (defmacro deftpl
-  "Create and bind a template function."
   [nm & forms]
   `(def ~nm (tpl ~@forms)))
 
 (comment
   
-  (deftpl
-    mytpl 
-    foo 
-    {:hey "#{(if (= \"a\" foo) \"is a\" \"not a\")}---#{foo}"})
-  ;=> #'hlisp.macros/mytpl
+  (def a ["asdf ~{x}" "qwer"])
+  (def b ["asdf ~{y}" "qwer"])
 
-  (mytpl "a")
-  ;=> {:hey "is a---a"}
+  (postwalk identity [1 2 3])
+  (postwalk
+    #(if (and (vector? %) (= :script (first %)) (= "text/hlisp" (:type (second %))))
+       (assoc-in % [2] (str "~(do " (nth % 2) ")")) 
+       %)
+    [:body [:script {:type "text/hlisp"} "foo"]] 
+    ) 
 
-  (mytpl "b")
-  ;=> {:hey "not a---b"}
+  (interpolate a b)
+  (every? string? '("asdf"))
+
+  (macroexpand '(interpolating
+
+    (deftpl
+      mytpl 
+      foo 
+      {:hey "~(if (= \"a\" foo) \"is a\" \"not a\")---~{foo}"})
+
+    (mytpl "a") 
+
+    (mytpl "b")
+
+    )) 
 
   (macroexpand '(def-values [x y z] [1 2 3]))
   ;=> (do
