@@ -5,21 +5,28 @@
   (:require
     [clojure.core.strint :as strint]))
 
+(defn- add-docstring
+  [docstring pair]
+  (if (string? docstring)
+    (list (first pair) docstring (last pair))
+    pair))
+
 (defn- do-def-values
-  [bindings values]
+  [docstring bindings values]
   (->>
     (macroexpand `(let [~bindings ~values]))
     (second)
     (partition 2)
+    (map (partial add-docstring docstring)) 
     (map #(cons 'def %))
     (list* 'do)))
 
 (defmacro def-values
   "Destructuring def, similar to scheme's define-values."
   ([bindings values] 
-   (do-def-values bindings values))
+   (do-def-values nil bindings values))
   ([docstring bindings values]
-   (do-def-values bindings values)))
+   (do-def-values docstring bindings values)))
 
 (defn i
   [template]
@@ -74,7 +81,7 @@
 
     )) 
 
-  (clojure.pprint/pprint (macroexpand '(def-values "asdf" [x y z] [1 2 3]))) 
+  (clojure.pprint/pprint (macroexpand '(def-values [x y z] [1 2 3]))) 
   ;=> (do
   ;     (def vec__803 [1 2 3])
   ;     (def x (clojure.core/nth vec__803 0 nil))
