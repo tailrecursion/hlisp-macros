@@ -41,15 +41,13 @@
   [& body]
   `(do ~@(apply interpolate body)))
 
-(defmacro tpl
-  [& forms]
-  (let [params  (butlast forms)
-        body    (last forms)]
-    `(fn [~@params] ~body)))
+(defmacro tpl [params body]
+  `(fn ~(vec (rest params))
+     ~body))
 
 (defmacro deftpl
-  [nm & forms]
-  `(def ~nm (tpl ~@forms)))
+  [nm params body]
+  `(def ~nm (tpl ~params ~body)))
 
 (comment
   
