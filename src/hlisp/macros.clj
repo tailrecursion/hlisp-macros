@@ -5,6 +5,14 @@
   (:require
     [clojure.core.strint :as strint]))
 
+(defmacro <-
+  [last-arg f & args]
+  `(~f ~@args ~last-arg))
+ 
+(defmacro <<-
+  [f & args]
+  `(~f ~(last args) ~@(butlast args)))
+
 (defn- add-docstring
   [docstring pair]
   (if (string? docstring)
@@ -54,17 +62,7 @@
   (def a ["asdf ~{x}" "qwer"])
   (def b ["asdf ~{y}" "qwer"])
 
-  (postwalk identity [1 2 3])
-
-  (postwalk
-    #(if (and (vector? %) (= :script (first %)) (= "text/hlisp" (:type (second %))))
-       (assoc-in % [2] (str "~(do " (nth % 2) ")")) 
-       %)
-    [:body [:script {:type "text/hlisp"} "foo"]] 
-    ) 
-
   (interpolate a b)
-  (every? string? '("asdf"))
 
   (macroexpand '(interpolating
 
@@ -78,7 +76,7 @@
     (mytpl "b")
 
     )) 
-
+  
   (clojure.pprint/pprint (macroexpand '(def-values [x y z] [1 2 3]))) 
   ;=> (do
   ;     (def vec__803 [1 2 3])
