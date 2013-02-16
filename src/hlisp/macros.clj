@@ -36,6 +36,21 @@
   ([docstring bindings values]
    (do-def-values docstring bindings values)))
 
+(defmacro def-elem
+  [param body]
+  `(do (def ~param ~body) nil))
+
+(defmacro def-elems
+  [params body]
+  `(do (def-values [~@(rest params)] ~body) nil))
+
+(defmacro tpl [params body]
+  `(fn [~@(rest params)] ~body))
+
+(defmacro deftpl
+  [nm params body]
+  `(do (def ~nm (tpl ~params ~body)) nil))
+
 (defn i
   [template]
   (let [parts (remove #(= "" %) (#'strint/interpolate template))]
@@ -49,20 +64,21 @@
   [& body]
   `(do ~@(apply interpolate body)))
 
-(defmacro tpl [params body]
-  `(fn ~(vec (rest params))
-     ~body))
-
-(defmacro deftpl
-  [nm params body]
-  `(def ~nm (tpl ~params ~body)))
-
 (comment
   
   (def a ["asdf ~{x}" "qwer"])
   (def b ["asdf ~{y}" "qwer"])
 
   (interpolate a b)
+
+  (use 'clojure.walk)
+
+  (clojure.pprint/pprint
+    (macroexpand-all '(def-elems
+                        (arglist foo bar)
+                        (doit form input)))) 
+
+  (macroexpand '(hlisp.macros/def-values [foo bar] (doit form input))) 
 
   (macroexpand '(interpolating
 
