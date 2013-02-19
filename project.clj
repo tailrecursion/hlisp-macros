@@ -1,4 +1,4 @@
-(defproject hlisp-macros "0.1.0-SNAPSHOT"
+(defproject hlisp-macros "1.0.0"
   :description "Some macros for use in hlisp projects."
   :url "http://github.com/micha/hlisp-macros"
   :license {:name "Eclipse Public License"
